@@ -1,35 +1,37 @@
-def containerName="html_container"
-def imageName="html_image"
-def dockerHubUser="nikunj0510"
-def tag="latest"
+agent any
+environment{
+    DOCKER_IMAGE="my-html-website"
+    GITHUB_REPO="https://github.com/Nikunj-Java/HTMLJenkinsDockerRepo.git"
+}
 
-node{
-
-    stage('Checkout Source Code'){
-        checkout scm
+stages{
+    stage('Clone Repository'){
+        git branch:'main', url:"${GITHUB_REPO}"
+        echo"clonning Repository"
     }
 
-    stage('Compilation'){
-        echo "Compilation Completed"
-    }
-
-    stage('Image Build'){
-        sh "docker build -t $imageName:${env.BUILD_NUMBER} --pull --no-cache ."
-        echo "Image build Completed"
-    }
-
-    stage('Run Application'){
-        try{
-
-            //stop existing container
-            sh "docker rm $containerName-${env.BUILD_NUMBER} -f"
-            //start container
-            sh "docker run -d --name $containerName -p 80:80 $imageName:${env.BUILD_NUMBER}"
-            
-        }catch (error){
-
-        }finally{
-            
+    stage('Build Docker Images'){
+        echo"Building Docker Images"
+        script{
+            sh "dockerbuild -t ${DOCKER_IMAGE} ."
         }
     }
+
+    stage('Run Docker Container'){
+        echo"Running Docker Images on Docker Container"
+        script{
+            sh """
+            docker stop website-container || true
+            dokcer rm website-container || true
+            """
+            sh "docker run -d --name website-container -p 80:80 ${DOCKER_IMAGE}"
+        }
+    }
+
+     
+}
+
+post{
+always{
+echo "Pipline Executed Successfully"}
 }
